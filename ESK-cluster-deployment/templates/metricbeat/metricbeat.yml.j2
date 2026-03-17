@@ -1,0 +1,18 @@
+metricbeat.modules:
+  - module: system
+    period: 10s
+    metricsets:
+      - cpu
+      - memory
+      - network
+      - filesystem
+      - process
+    enabled: true
+
+output.elasticsearch:
+  hosts: {{ output_elasticsearch }}
+
+setup.kibana:
+  host: {{ setup_kibana }}
+
+setup.dashboards.enabled: true

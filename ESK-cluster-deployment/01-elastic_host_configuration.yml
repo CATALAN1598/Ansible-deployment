@@ -1,0 +1,59 @@
+---
+- name: Install default elastic_host configuration
+  hosts: elastic_host
+  vars_files:
+    - group_vars/elastic_host.yml
+  become: true
+  tasks:
+    - name: Add elastic repository
+      ansible.builtin.copy:
+        src: files/apt/sources.list.d/elastic-8.list
+        dest: /etc/apt/sources.list.d/elastic-8.list
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Force packages version
+      ansible.builtin.copy:
+        src: files/apt/preferences.d/agents_version
+        dest: /etc/apt/preferences.d/agents_version
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy elasticsearch GPG repository key
+      ansible.builtin.copy:
+        src: files/apt/keyrings/elasticsearch-keyring.gpg
+        dest: /usr/share/keyrings/elasticsearch-keyring.gpg
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+
+    - name: Install agents
+      ansible.builtin.apt:
+        name: "{{ lookup('file', 'files/apt/lists/agents.list').split('\n') }}"
+        state: present
+        update_cache: true
+
+
+    - name: Copy filebeat configuration
+      ansible.builtin.template:
+        src: templates/filebeat/filebeat.yml.j2
+        dest: /etc/filebeat/filebeat.yml
+        owner: root
+        group: root
+        mode: '0644'
+
+
+    - name: Copy metricbeat configuration
+      ansible.builtin.template:
+        src: templates/metricbeat/metricbeat.yml.j2
+        dest: /etc/metricbeat/metricbeat.yml
+        owner: root
+        group: root
+        mode: '0644'

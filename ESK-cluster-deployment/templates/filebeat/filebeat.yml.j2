@@ -1,0 +1,13 @@
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/*.log
+
+output.elasticsearch:
+  host: {{ output_elasticsearch }}
+
+setup.kibana:
+  host: {{ setup_kibana }}
+
+setup.dashboards.enabled: true

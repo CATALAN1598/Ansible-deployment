@@ -1,0 +1,3 @@
+Package: kibana
+Pin: version 8.19.6
+Pin-priority: 1001

@@ -1,0 +1,30 @@
+---
+cluster_name: "auto_deploy_cluster"
+cluster_uuid: "null"
+
+discovery_seed_hosts: >-
+  [{% for host in groups['db_host'] %}
+  "{{ hostvars[host]['ansible_host'] }}:9300"
+  {% if not loop.last %},
+  {% endif %}
+  {% endfor %}]
+
+node_roles:
+  - "master"
+  - "data"
+  - "ingest"
+
+cluster_initial_master_nodes: >-
+  [{% for host in groups['db_host'] %}
+  "{{ host }}"
+  {% if not loop.last %},
+  {% endif %}
+  {% endfor %}]
+
+ca_stack_pass: "password"
+cert_host_pass: "certificate-password"
+
+elastic_certs: "/etc/elasticsearch/certs/"
+elastic_bin: "/usr/share/elasticsearch/bin"
+ca_stack_p12: "{{ elastic_certs }}/elastic-stack-ca.p12"
+cert_host_p12: "{{ elastic_certs }}/elastic-certificates.p12"

@@ -1,0 +1,61 @@
+---
+- name: creation of elasticsearch nodes
+  hosts: db_host
+  vars_files:
+    - groups_vars/db_host.yml
+  become: true
+  tasks:
+    - name: Copy elasticsearch preferences version
+      ansible.builtin.copy:
+        src: files/apt/preferences.d/elasticsearch_version
+        dest: /etc/apt/preferences.d/elasticsearch_version
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install elasticsearch
+      ansible.builtin.apt:
+        name: elasticsearch
+        state: present
+        update_cache: true
+
+    - name: Copy elasticsearh configuration from elasticsearch.yml.j2
+      ansible.builtin.template:
+        src: elasticsearch/elasticsearch.yml.j2
+        dest: /etc/elasticsearch/elasticsearch.yml
+        owner: elasticsearch
+        group: elasticsearch
+        mode: '0644'
+      register: es_configuration
+
+    - name: Copy CA-certificate of the stack
+      ansible.builtin.copy:
+        src: files/elasticsearch/certs/elastic-stack-ca.p12
+        dest: "{{ ca_stack_p12 }}"
+        owner: root
+        group: elasticsearch
+        mode: '0660'
+
+    - name: Generate client certificate if not exist
+      ansible.builtin.command: >
+        {{ elastic_bin }}/elasticsearch-certutil cert
+        --silent
+        --ca {{ ca_stack_p12 }}
+        --ca-pass {{ ca_stack_pass }}
+        --pass {{ cert_host_pass }}
+        --dns {{ inventory_hostname }}
+        --dns {{ inventory_hostname }}{{ domain }}
+        --ip {{ ansible_default_ipv4.address }}
+        --ip 127.0.0.1
+        --out {{ cert_host_p12}}
+      args:
+        creates: "{{ cert_host_p12 }}"
+      register: cert_generation
+
+    - name: Apply certificate permissions
+      ansible.builtin.file:
+        path: "{{ cert_host_p12 }}"
+        mode: '0660'
+        owner: root
+        group: elasticsearch
+        

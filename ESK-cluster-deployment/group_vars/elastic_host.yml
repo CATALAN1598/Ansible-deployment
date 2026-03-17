@@ -1,0 +1,9 @@
+---
+output_elasticsearch: >-
+  [{% for host in groups['db_host'] %}
+  "http://{{host}}:9200"
+  {% if not loop.last %},
+  {% endif %}
+  {% endfor %}]
+
+setup_kibana: "kibana.dpl.lab"

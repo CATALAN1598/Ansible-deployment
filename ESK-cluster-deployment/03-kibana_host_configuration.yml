@@ -1,0 +1,28 @@
+---
+- name: creation of kibana nodes
+  hosts: app_host
+  vars_files:
+    - groups_vars/app_host.yml
+  become: true
+  tasks:
+    - name: Copy kibana preferences version
+      ansible.builtin.copy:
+        src: files/apt/preferences.d/kibana_version
+        dest: /etc/apt/preferences.d/kibana_version
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install kibana
+      ansible.builtin.apt:
+        name: kibana
+        state: present
+        update_cache: true
+
+    - name: Copy elasticsearh configuration from kibana.yml.j2
+      ansible.builtin.template:
+        src: kibana/kibana.yml.j2
+        dest: /etc/kibana/kibana.yml
+        owner: kibana
+        group: kibana
+        mode: '0644'
