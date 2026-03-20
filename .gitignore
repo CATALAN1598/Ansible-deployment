@@ -2,3 +2,4 @@ venv
 *.txt
 *.pwd
 *.p12
+.*
