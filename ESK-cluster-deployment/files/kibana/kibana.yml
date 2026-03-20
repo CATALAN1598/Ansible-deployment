@@ -1,0 +1,14 @@
+server.name: app-vm-03
+server.host: 0.0.0.0
+server.port: 5601
+
+elasticsearch.hosts: [ "http://db-vm-01.dpl.lab:9200" ,   "http://db-vm-02.dpl.lab:9200"  ]
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "{'content': '{}', 'redirected': False, 'url': 'https://db-vm-01.dpl.lab:9200/_security/user/kibana_system/_password', 'status': 200, 'x_elastic_product': 'Elasticsearch', 'content_type': 'application/json', 'content_length': '2', 'cookies_string': '', 'cookies': {}, 'msg': 'OK (2 bytes)', 'elapsed': 0, 'changed': False, 'json': {}, 'failed': False, 'warnings': ["Host 'app-vm-01' is using the discovered Python interpreter at '/usr/bin/python3.11', but future installation of another Python interpreter could cause a different interpreter to be discovered."]}
+
+xpack.encryptedSavedObjects.encryptionKey: "a4a2ed459d6a416b1b25d1f0d3c50b3c"
+xpack.reporting.encryptionKey: "89ef26168e290545d42b2867d6fc1550"
+xpack.security.encryptionKey: "82e1cab94aab0eeb44812b8dc0bc4f04"
+
+xpack.reporting.enabled: false
+xpack.monitoring.ui.enabled: true

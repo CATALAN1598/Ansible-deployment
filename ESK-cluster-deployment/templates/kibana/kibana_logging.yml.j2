@@ -1,0 +1,5 @@
+logging.root.level: {{ log_level }}
+logging.appenders.file.fileName: {{ log_file }}
+logging.appenders.file.type: {{ log_type }}
+logging.appenders.file.layout.type: {{ log_fmt }}
+logging.root.appenders: ["default", "file"]

@@ -1,0 +1,1 @@
+KIBANA_OPTS="--config /etc/kibana/kibana.yml --config /etc/kibana/kibana_xpack.yml --config /etc/kibana/kibana_security.yml --config /etc/kibana/kibana_keys.yml --config /etc/kibana/kibana_logging.yml"

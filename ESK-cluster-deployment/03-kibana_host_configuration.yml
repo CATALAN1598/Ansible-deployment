@@ -1,5 +1,5 @@
 ---
-- name: creation of kibana nodes
+- name: Creation of kibana nodes
   hosts: app_host
   vars_files:
     - groups_vars/app_host.yml
@@ -19,10 +19,137 @@
         state: present
         update_cache: true
 
-    - name: Copy elasticsearh configuration from kibana.yml.j2
+    - name: Check if encryption keys exist in kibana.yml
+      ansible.builtin.command: grep -E "(xpack.encryptedSavedObjects.encryptionKey|xpack.reporting.encryptionKey|xpack.security.encryptionKey)" /etc/kibana/kibana_keys.yml
+      register: keys_exist
+      changed_when: false
+      failed_when: false
+      run_once: true
+      delegate_to: "{{ groups['app_host'][0] }}"
+
+    - name: Generate Kibana encryption keys
+      ansible.builtin.command: /usr/share/kibana/bin/kibana-encryption-keys generate --quiet
+      register: kibana_keys_raw
+      changed_when: false
+      run_once: true
+      delegate_to: "{{ groups['app_host'][0] }}"
+      when: keys_exist.stdout_lines | length == 0
+
+    - name: Set kibana_keys fact (handles skipped case)
+      set_fact:
+        kibana_keys: "{{ kibana_keys_raw if kibana_keys_raw is defined and kibana_keys_raw.stdout is defined else {} }}"
+      run_once: true
+
+    - name: Print kibana encryption keys
+      ansible.builtin.debug:
+        msg: "Kibana encryption keys: {{ kibana_keys.stdout | default('Keys already exist') }}"
+          
+    - name: Extract encryption keys
+      ansible.builtin.set_fact:
+        kibana_encrypted_key: "{{ kibana_keys.stdout.split('\n')[0].split(': ')[1] }}"
+        kibana_reporting_key: "{{ kibana_keys.stdout.split('\n')[1].split(': ')[1] }}"
+        kibana_security_key: "{{ kibana_keys.stdout.split('\n')[2].split(': ')[1] }}"
+      when: kibana_keys.stdout is defined and kibana_keys.stdout | length > 0
+      run_once: true
+      delegate_to: "{{ groups['app_host'][0] }}"
+
+    - name: Force kibana_system password via Security API with default password
+      ansible.builtin.uri:
+        url: "https://{{ groups['db_host'][0] }}{{ domain }}:9200/_security/user/kibana_system/_password"
+        method: PUT
+        user: elastic
+        password: "vluIg8lnmUpE3*gGLHYK"
+        body: 
+          password: "{{ default_kibana_system_password }}"
+        body_format: json
+        validate_certs: no
+        force_basic_auth: yes
+        status_code: [200, 201]
+        return_content: no
+      run_once: true
+      delegate_to: "{{ groups['db_host'][0] }}"
+    
+    - name: Print kibana_system password
+      ansible.builtin.debug:
+        msg: "Kibana_system_password: {{ default_kibana_system_password | default('Not Set') }}"
+  
+    - name: Ensure certs diri exist + copy CA cert for HTTP layer
+      block:
+        - name: Create certs directory
+          ansible.builtin.file:
+            path: /etc/kibana/certs
+            state: directory
+            owner: kibana
+            group: kibana
+            mode: '0755'
+
+        - name: Copy ca certificate for HTTP layer 
+          ansible.builtin.copy:
+            src: files/elasticsearch/certs/elastic-ca.crt
+            dest: /etc/kibana/certs/elastic-ca.crt
+            owner: kibana
+            group: kibana
+            mode: '0644'
+
+    - name: Deploy default configuration of kibana
       ansible.builtin.template:
-        src: kibana/kibana.yml.j2
+        src: templates/kibana/kibana.yml.j2
         dest: /etc/kibana/kibana.yml
         owner: kibana
         group: kibana
         mode: '0644'
+    
+    - name: Deploy keys configuration of kibana
+      ansible.builtin.template:
+        src: templates/kibana/kibana_keys.yml.j2
+        dest: /etc/kibana/kibana_keys.yml
+        owner: kibana
+        group: kibana
+        mode: '0644'
+      when: kibana_keys.stdout is defined and kibana_keys.stdout | length > 0
+
+    - name: Deploy xpack configuration of kibana
+      ansible.builtin.template:
+        src: templates/kibana/kibana_xpack.yml.j2
+        dest: /etc/kibana/kibana_xpack.yml
+        owner: kibana
+        group: kibana
+        mode: '0644'
+
+    - name: Deploy security configuration of kibana
+      ansible.builtin.template:
+        src: templates/kibana/kibana_security.yml.j2
+        dest: /etc/kibana/kibana_security.yml
+        owner: kibana
+        group: kibana
+        mode: '0644'
+
+    - name: Deploy logging configuration of kibana
+      ansible.builtin.template:
+        src: templates/kibana/kibana_logging.yml.j2
+        dest: /etc/kibana/kibana_logging.yml
+        owner: kibana
+        group: kibana
+        mode: '0644'
+
+    - name: Deploy default kibana options
+      ansible.builtin.copy:
+        src: files/default/kibana
+        dest: /etc/default/kibana
+        owner: kibana
+        group: kibana
+        mode: '0640'
+
+    - name: Replace kibana systemd file
+      ansible.builtin.copy:
+        src: files/lib/systemd/system/kibana.service
+        dest: /lib/systemd/system/kibana.service
+        owner: root
+        group: root
+        mode: '0664'
+
+    - name: Restart service kibana with deamon-reload
+      ansible.builtin.systemd_service:
+        state: restarted
+        daemon_reload: true
+        name: kibana
