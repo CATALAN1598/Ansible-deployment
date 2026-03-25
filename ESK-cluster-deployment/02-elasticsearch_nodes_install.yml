@@ -18,6 +18,22 @@
         name: elasticsearch
         state: present
         update_cache: true
+    
+    - name: Apply elasticsearch right
+      ansible.builtin.file:
+        path: /etc/elasticsearch
+        state: directory
+        recurse: yes
+        owner: elasticsearch
+        group: elasticsearch
+
+    - name: Configure SSL keystore passwords
+      ansible.builtin.shell: echo "{{ cert_host_pass }}" | sudo -u elasticsearch /usr/share/elasticsearch/bin/elasticsearch-keystore add -x -f "{{ item }}"
+      loop:
+        - xpack.security.transport.ssl.keystore.secure_password
+        - xpack.security.transport.ssl.truststore.secure_password
+        - xpack.security.http.ssl.keystore.secure_password
+          #      no_log: true
 
     - name: Copy elasticsearh configuration from elasticsearch.yml.j2
       ansible.builtin.template:
@@ -27,14 +43,24 @@
         group: elasticsearch
         mode: '0644'
       register: es_configuration
+    
+    - name: Ensure certs dir exist + copy CA cert
+      block:
+        - name: Create certs directory
+          ansible.builtin.file:
+            path: /etc/elasticsearch/certs
+            state: directory
+            owner: elasticsearch
+            group: elasticsearch
+            mode: '0755'
 
-    - name: Copy CA-certificate of the stack
-      ansible.builtin.copy:
-        src: files/elasticsearch/certs/elastic-stack-ca.p12
-        dest: "{{ ca_stack_p12 }}"
-        owner: root
-        group: elasticsearch
-        mode: '0660'
+        - name: Copy CA-certificate of the stack
+          ansible.builtin.copy:
+            src: files/elasticsearch/certs/elastic-stack-ca.p12
+            dest: "{{ ca_stack_p12 }}"
+            owner: elasticsearch
+            group: elasticsearch
+            mode: '0660'
 
     - name: Generate client certificate if not exist
       ansible.builtin.command: >
@@ -56,6 +82,44 @@
       ansible.builtin.file:
         path: "{{ cert_host_p12 }}"
         mode: '0660'
-        owner: root
+        owner: elasticsearch
         group: elasticsearch
+
+
+    - name: Check if elastic password is set
+      ansible.builtin.shell: sudo -u elasticsearch /usr/share/elasticsearch/bin/elasticsearch-keystore list
+      register: keystore_contents
+      changed_when: false
+      delegate_to: "{{ groups['db_host'][0] }}"
+      run_once: true
+  
+    - name: check keystore_contents
+      ansible.builtin.debug:
+        msg: "{{ keystore_contents.stdout }}"
+
+    - name: Start service elaticsearch
+      ansible.builtin.systemd_service:
+        name: elasticsearch
+        state: started
+        enabled: true
+
+    - name: set elasticsearch default password if not already set
+      block:
+        - name: Set elastic user password
+          ansible.builtin.shell: sudo -u elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic --auto --batch
+          register: elasticsearch_master_password
+          changed_when: '"New value" in elasticsearch_master_password.stdout'
         
+        - name: Delete autoconfiguration.password_hash
+          ansible.builtin.shell: sudo -u elasticsearch /usr/share/elasticsearch/bin/elasticsearch-keystore remove autoconfiguration.password_hash
+          when: elasticsearch_master_password.rc == 0 
+          ignore_errors: yes
+
+        - name: Show elasticsearch master password
+          ansible.builtin.debug:
+            msg: "ATTENTION MASTER PASSWORD NEED TO BE SAVED !  {{ elasticsearch_master_password.stdout}}"
+          when: elasticsearch_master_password is defined
+      when: "'autoconfiguration.password_hash' in keystore_contents.stdout"
+      delegate_to: "{{ groups['db_host'][0] }}"
+      run_once: true
+

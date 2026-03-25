@@ -58,7 +58,7 @@
         url: "https://{{ groups['db_host'][0] }}{{ domain }}:9200/_security/user/kibana_system/_password"
         method: PUT
         user: elastic
-        password: "vluIg8lnmUpE3*gGLHYK"
+        password: "{{ elastic_master_password }}"
         body: 
           password: "{{ default_kibana_system_password }}"
         body_format: json
@@ -153,3 +153,4 @@
         state: restarted
         daemon_reload: true
         name: kibana
+        enabled: true
