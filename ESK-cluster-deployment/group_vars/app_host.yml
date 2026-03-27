@@ -17,7 +17,7 @@ elastic_host: >-
   {% endfor %}]
   
 default_kibana_system_password: "AtempStrongPassword"
-elastic_master_password: "7HvS96gDhrckPYs1Di1b"
+elastic_master_password: "1g*FKUQ=xqekBlz8=-nH"
 
 
 log_level: "debug"
