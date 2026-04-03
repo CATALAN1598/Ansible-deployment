@@ -21,9 +21,6 @@ cluster_initial_master_nodes: >-
   {% endif %}
   {% endfor %}]
 
-ca_stack_pass: "password"
-cert_host_pass: "certificate-password"
-
 elastic_certs: "/etc/elasticsearch/certs/"
 elastic_bin: "/usr/share/elasticsearch/bin"
 ca_stack_p12: "{{ elastic_certs }}/elastic-stack-ca.p12"

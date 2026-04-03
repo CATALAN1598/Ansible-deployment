@@ -3,6 +3,7 @@
   hosts: db_host
   vars_files:
     - groups_vars/db_host.yml
+    - group_vars/{{ env }}/vault_{{ env }}.yml
   become: true
   tasks:
     - name: Copy elasticsearch preferences version

@@ -3,6 +3,7 @@
   hosts: app_host
   vars_files:
     - groups_vars/app_host.yml
+    - group_vars/{{ env }}/vault_{{ env }}.yml
   become: true
   tasks:
     - name: Copy kibana preferences version

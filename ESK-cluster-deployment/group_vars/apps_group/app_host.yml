@@ -2,23 +2,12 @@
 server_host: "0.0.0.0"
 server_port: "5601"
 
-  #elastic_host: >-
-  #[{% for host in groups['db_host'] %}
-  #"http://{{host}}{{domain}}:9200"
-  #{% if not loop.last %},
-  #{% endif %}
-  #{% endfor %}]
-
 elastic_host: >-
   [{% for host in groups['db_host'] %}
   "https://{{ hostvars[host]['ansible_host'] }}:9200"
   {% if not loop.last %},
   {% endif %}
   {% endfor %}]
-  
-default_kibana_system_password: "AtempStrongPassword"
-elastic_master_password: "1g*FKUQ=xqekBlz8=-nH"
-
 
 log_level: "debug"
 log_file: "/var/log/kibana/kibana.log"
