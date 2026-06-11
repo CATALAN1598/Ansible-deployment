@@ -1,6 +1,6 @@
 ---
 output_elasticsearch: >-
-  [{% for host in groups['db_host'] %}
+  [{% for host in groups['db_hosts'] %}
   "http://{{host}}:9200"
   {% if not loop.last %},
   {% endif %}

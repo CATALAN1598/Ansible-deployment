@@ -1,6 +1,6 @@
 all:
   children:
-    app_host:
+    app_hosts:
       hosts:
         app-vm-01:
           ansible_host: 192.168.1.101
@@ -9,7 +9,7 @@ all:
         app-vm-03:
           ansible_host: 192.168.1.103
 
-    db_host:
+    db_hosts:
       hosts:
         db-vm-01:
           ansible_host: 192.168.1.111
@@ -51,10 +51,10 @@ all:
         runners_vm:
 
 
-    elastic_host:
+    elastic_hosts:
       children:
-        db_host:
-        app_host:
+        db_hosts:
+        app_hosts:
 
     k8s_host:
       children:

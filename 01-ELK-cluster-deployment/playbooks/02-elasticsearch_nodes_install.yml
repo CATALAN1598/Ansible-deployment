@@ -1,8 +1,8 @@
 ---
 - name: creation of elasticsearch nodes
-  hosts: db_host
+  hosts: db_hosts
   vars_files:
-    - groups_vars/db_host.yml
+    - groups_vars/db_hosts.yml
     - group_vars/{{ env }}/vault_{{ env }}.yml
   become: true
   tasks:
@@ -91,7 +91,7 @@
       ansible.builtin.shell: sudo -u elasticsearch /usr/share/elasticsearch/bin/elasticsearch-keystore list
       register: keystore_contents
       changed_when: false
-      delegate_to: "{{ groups['db_host'][0] }}"
+      delegate_to: "{{ groups['db_hosts'][0] }}"
       run_once: true
   
     - name: check keystore_contents
@@ -121,6 +121,6 @@
             msg: "ATTENTION MASTER PASSWORD NEED TO BE SAVED !  {{ elasticsearch_master_password.stdout}}"
           when: elasticsearch_master_password is defined
       when: "'autoconfiguration.password_hash' in keystore_contents.stdout"
-      delegate_to: "{{ groups['db_host'][0] }}"
+      delegate_to: "{{ groups['db_hosts'][0] }}"
       run_once: true
 

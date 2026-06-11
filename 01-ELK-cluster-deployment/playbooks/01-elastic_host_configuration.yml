@@ -1,8 +1,8 @@
 ---
-- name: Install default elastic_host configuration
-  hosts: elastic_host
+- name: Install default elastic_hosts configuration
+  hosts: elastic_hosts
   vars_files:
-    - group_vars/elastic_host.yml
+    - group_vars/elastic_hosts.yml
   become: true
   tasks:
     - name: Add elastic repository

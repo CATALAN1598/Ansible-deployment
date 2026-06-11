@@ -3,7 +3,7 @@ cluster_name: "auto_deploy_cluster"
 cluster_uuid: "null"
 
 discovery_seed_hosts: >-
-  [{% for host in groups['db_host'] %}
+  [{% for host in groups['db_hosts'] %}
   "{{ hostvars[host]['ansible_host'] }}:9300"
   {% if not loop.last %},
   {% endif %}
@@ -15,7 +15,7 @@ node_roles:
   - "ingest"
 
 cluster_initial_master_nodes: >-
-  [{% for host in groups['db_host'] %}
+  [{% for host in groups['db_hosts'] %}
   "{{ host }}"
   {% if not loop.last %},
   {% endif %}

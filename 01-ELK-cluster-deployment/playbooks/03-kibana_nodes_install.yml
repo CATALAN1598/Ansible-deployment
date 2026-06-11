@@ -1,8 +1,8 @@
 ---
 - name: Creation of kibana nodes
-  hosts: app_host
+  hosts: app_hosts
   vars_files:
-    - groups_vars/app_host.yml
+    - groups_vars/app_hosts.yml
     - group_vars/{{ env }}/vault_{{ env }}.yml
   become: true
   tasks:
@@ -26,14 +26,14 @@
       changed_when: false
       failed_when: false
       run_once: true
-      delegate_to: "{{ groups['app_host'][0] }}"
+      delegate_to: "{{ groups['app_hosts'][0] }}"
 
     - name: Generate Kibana encryption keys
       ansible.builtin.command: /usr/share/kibana/bin/kibana-encryption-keys generate --quiet
       register: kibana_keys_raw
       changed_when: false
       run_once: true
-      delegate_to: "{{ groups['app_host'][0] }}"
+      delegate_to: "{{ groups['app_hosts'][0] }}"
       when: keys_exist.stdout_lines | length == 0
 
     - name: Set kibana_keys fact (handles skipped case)
@@ -52,11 +52,11 @@
         kibana_security_key: "{{ kibana_keys.stdout.split('\n')[2].split(': ')[1] }}"
       when: kibana_keys.stdout is defined and kibana_keys.stdout | length > 0
       run_once: true
-      delegate_to: "{{ groups['app_host'][0] }}"
+      delegate_to: "{{ groups['app_hosts'][0] }}"
 
     - name: Force kibana_system password via Security API with default password
       ansible.builtin.uri:
-        url: "https://{{ groups['db_host'][0] }}{{ domain }}:9200/_security/user/kibana_system/_password"
+        url: "https://{{ groups['db_hosts'][0] }}{{ domain }}:9200/_security/user/kibana_system/_password"
         method: PUT
         user: elastic
         password: "{{ elastic_master_password }}"
@@ -68,7 +68,7 @@
         status_code: [200, 201]
         return_content: no
       run_once: true
-      delegate_to: "{{ groups['db_host'][0] }}"
+      delegate_to: "{{ groups['db_hosts'][0] }}"
     
     - name: Print kibana_system password
       ansible.builtin.debug:

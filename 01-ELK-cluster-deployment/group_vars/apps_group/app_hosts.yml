@@ -2,8 +2,8 @@
 server_host: "0.0.0.0"
 server_port: "5601"
 
-elastic_host: >-
-  [{% for host in groups['db_host'] %}
+elastic_hosts: >-
+  [{% for host in groups['db_hosts'] %}
   "https://{{ hostvars[host]['ansible_host'] }}:9200"
   {% if not loop.last %},
   {% endif %}
