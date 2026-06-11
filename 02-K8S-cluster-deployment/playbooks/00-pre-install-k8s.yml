@@ -1,0 +1,8 @@
+---
+- name: Install default package for k8s_hosts
+  hosts: k8s_host
+  vars-files:
+    - group_vars/k8s_host.yml
+  become: true
+  tasks:
+    - name
