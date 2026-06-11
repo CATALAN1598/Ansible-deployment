@@ -1,0 +1,11 @@
+Package: kubeadm
+Pin: 1.36.1-1.1
+Pin-priority: 1001
+
+Package: kubectl
+Pin: 1.36.1-1.1
+Pin-priority: 1001
+
+Package: kubelet
+Pin: 1.36.1-1.1
+Pin-priority: 1001

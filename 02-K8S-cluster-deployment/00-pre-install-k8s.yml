@@ -67,4 +67,5 @@
     - name: Show kubelet status
       ansible.builtin.debug:
         msg:
+          active_state: "{{ ansible_facts.services['kubelet.service'].state }}"
           enabled:      "{{ ansible_facts.services['kubelet.service'].status }}"
