@@ -17,6 +17,11 @@ all:
           ansible_host: 192.168.1.132
         k8s-worker-node3: 
           ansible_host: 192.168.1.133
+    
+    loadbalancers:
+      hosts:
+        lb-vm-01:
+          ansible_host: 192.168.1.200
 
     k8s_hosts:
       children:

@@ -1,0 +1,25 @@
+---
+- name: Boostrap du cluster
+  hosts: k8s_hosts
+  vars_files:
+    - group_vars/k8s_hosts.yml
+    - group_vars/k8s_masters.yml
+    - group_vars/k8s_workers.yml
+    - group_vars/loadbalancers.yml
+  become: true
+  tasks: 
+    - name: Init first node
+      ansible.builtin.command:
+        argv:
+          - kubeadm
+          - init
+          - --control-plane-endpoint
+          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+          - --upload-certs
+          - --kubernetes-version "{{ kubernetes_version }}"
+      register: init_first_master
+      delegate_to: "{{ groups['k8s_masters'][0] }}"
+
+    - name: Show init logs
+      ansible.builtin.debug:
+        msg: "{{ init_first_master.stout }}"

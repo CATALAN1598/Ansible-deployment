@@ -1,0 +1,8 @@
+---
+api_server_dest_port: 6443
+api_server_src_port: 6443
+
+backend_hosts: |
+  {% for host in groups['k8s_masters'] %}
+      server {{ host }}  {{ hostvars[host]['ansible_host'] }}:{{ api_server_src_port }} check verify none
+  {% endfor %}

@@ -2,9 +2,18 @@
 - name: Install default package for k8s_hosts
   hosts: k8s_hosts
   vars_files:
-    - group_vars/k8s_host.yml
+    - group_vars/k8s_hosts.yml
   become: true
   tasks:
+    - name: Add local DNS [OPTIONAL]
+      ansible.builtin.template:
+        src: templates/dns_local/hosts.j2
+        dest: /etc/hosts
+        owner: root
+        group: root
+        mode: "0644"
+      notify: reboot_vm 
+
     - name: Update system package index before installing kubes commands
       ansible.builtin.apt:
         update_cache: true
@@ -111,3 +120,7 @@
         - name: reload_sysctl
           ansible.builtin.command:
             cmd: sysctl --system
+
+        - name: reboot_vm 
+          ansible.builtin.reboot:
+            msg: "Initialyze {{ inventory_hostname }}"

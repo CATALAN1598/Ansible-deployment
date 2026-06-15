@@ -1,0 +1,33 @@
+---
+- name: Installation of Haproxy for master nodes
+  hosts: loadbalancers
+  vars_files:
+    - groups_vars/loadbalancers.yml
+  become: true
+  tasks:
+    - name: update system
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install haproxy packages
+      ansible.builtin.apt:
+        name: haproxy
+        state: present
+
+    - name: Gen haproxy conf from template
+      ansible.builtin.template:
+        src: templates/haproxy/haproxy_global.cfg.j2 
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: "0755"
+      notify: restart_haproxy
+
+  handlers:
+    - name: restart_haproxy
+      ansible.builtin.systemd_service:
+        name: haproxy
+        state: restarted
+        daemon_reload: true
+
+    
