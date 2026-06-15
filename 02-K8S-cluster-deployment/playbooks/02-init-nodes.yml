@@ -1,6 +1,6 @@
 ---
 - name: Boostrap du cluster
-  hosts: k8s_hosts
+  hosts: "{{ groups['k8s_masters'][0] }}"
   vars_files:
     - group_vars/k8s_hosts.yml
     - group_vars/k8s_masters.yml
@@ -8,18 +8,69 @@
     - group_vars/loadbalancers.yml
   become: true
   tasks: 
-    - name: Init first node
+      
+    - name: init master 
       ansible.builtin.command:
         argv:
-          - kubeadm
+          - kubeadm 
           - init
-          - --control-plane-endpoint
-          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
-          - --upload-certs
-          - --kubernetes-version "{{ kubernetes_version }}"
+          - "--control-plane-endpoint={{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+          - "--upload-certs"
+          - "--kubernetes-version={{ kubernetes_version }}"
+          - "--pod-network-cidr={{ pods_network_cidr }}"
+        creates: /etc/kubernetes/admin.conf
       register: init_first_master
-      delegate_to: "{{ groups['k8s_masters'][0] }}"
 
     - name: Show init logs
       ansible.builtin.debug:
-        msg: "{{ init_first_master.stout }}"
+        msg: "{{ init_first_master.stdout_lines }}"
+              
+
+    - name: Extract join token and cert hash
+      ansible.builtin.set_fact:
+        join_token: "{{ init_first_master.stdout | regex_search('--token ([a-z0-9]+\\.[a-z0-9]+)', '\\1') | first }}"
+        join_cert_hash: "{{ init_first_master.stdout | regex_search('--discovery-token-ca-cert-hash (sha256:[a-f0-9]+)', '\\1') | first }}"
+        join_certificate_key: "{{ init_first_master.stdout | regex_search('--certificate-key ([a-f0-9]+)', '\\1') | first }}"
+
+    - name: Show parsed values
+      ansible.builtin.debug:
+        msg:
+          token:           "{{ join_token }}"
+          cert_hash:       "{{ join_cert_hash }}"
+          certificate_key: "{{ join_certificate_key }}"
+
+
+---
+- name: Master join cluster
+  hosts: k8s_masters[1:]
+  tasks:
+    - name: kubeadm join masters
+      ansible.builtin.command:
+        argv:
+          - kubeadm
+          - join
+          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+          - "--token"
+          - "{{ hostvars[groups['k8s_masters'][0]]['join_token'] }}"
+          - "--discovery-token-ca-cert-hash"
+          - "{{ hostvars[groups['k8s_masters'][0]]['join_cert_hash'] }}"
+          - "--control-plane"
+          - "--certificate-key"
+          - "{{ hostvars[groups['k8s_masters'][0]]['join_certificate_key'] }}"
+        creates: /etc/kubernetes/admin.conf
+
+---
+- name: Master join cluster
+  hosts: k8s_workers
+  tasks:
+    - name: kubeadm join workers
+      ansible.builtin.command:
+        argv:
+          - kubeadm
+          - join
+          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+          - "--token"
+          - "{{ hostvars[groups['k8s_masters'][0]]['join_token'] }}"
+          - "--discovery-token-ca-cert-hash"
+          - "{{ hostvars[groups['k8s_masters'][0]]['join_cert_hash'] }}"
+      creates: /etc/kubernetes/kubelet.conf
