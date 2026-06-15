@@ -54,17 +54,60 @@
         name: "{{ lookup('file', 'files/apt/lists/kube_cmd.list').split('\n') }}"
         state: present
         update_cache: true
-      
-    - name: Start kubelet service      
-      ansible.builtin.systemd_service:
-        name: kubelet
-        state: started
-        enabled: true
+    
+    - name: Enable ip_forward for the kernel
+      ansible.builtin.command:
+        cmd: echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/k8s.conf
+      notify: reload_sysctl
 
-    - name: Gather service facts
-      ansible.builtin.service_facts:
+    - name: Configure CgroupDriver
+      block:
+        - name: Set kubelet with systemd cgroup manager
+          ansible.builtin.copy:
+            src: files/var/lib/kubelet/config.yaml
+            dest: /var/lib/kubelet/config.yaml
+            owner: root
+            group: root
+            mode: "0644"
+          notify: restart_containerd
 
-    - name: Show kubelet status
-      ansible.builtin.debug:
-        msg:
-          enabled:      "{{ ansible_facts.services['kubelet.service'].status }}"
+        - name: Set containerd with systemd cgroup manager
+          ansible.builtin.copy:
+            src: files/containerd/config.toml
+            dest: /etc/containerd/config.toml
+            owner: root
+            group: root
+            mode: "0644"
+          notify: restart_kubelet
+       
+        - name: Start and Enable kubelet service
+          ansible.builtin.systemd_service:
+            name: kubelet
+            state: started
+            enabled: true
+
+        - name: Gather service facts
+          ansible.builtin.service_facts:
+
+        - name: Show kubelet status
+          ansible.builtin.debug:
+            msg:
+              enabled:      "{{ ansible_facts.services['kubelet.service'].status }}"
+              active_state: "{{ ansible_facts.services['kubelet.service'].state }}"
+
+  handlers:
+        - name: restart_kubelet
+          ansible.builtin.systemd_service:
+            name: kubelet
+            state: restarted
+            daemon_reload: true
+
+        - name: restart_containerd
+          ansible.builtin.systemd_service:
+            name: containerd
+            state: restarted
+            daemon_reload: true
+       
+        - name: reload_sysctl
+          ansible.builtin.command:
+            cmd: sysctl --system
