@@ -1,0 +1,118 @@
+---
+- name: Boostrap du cluster
+  hosts: "{{ groups['k8s_masters'][0] }}"
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  vars_files:
+    - group_vars/all.yml
+    - group_vars/k8s_hosts.yml
+    - group_vars/k8s_masters.yml
+    - group_vars/k8s_workers.yml
+    - group_vars/loadbalancers.yml
+  become: true
+  tasks:   
+    - name: init master 
+      ansible.builtin.command:
+        argv:
+          - kubeadm 
+          - init
+          - "--control-plane-endpoint={{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+          - "--upload-certs"
+          - "--kubernetes-version={{ kubernetes_version }}"
+          - "--pod-network-cidr={{ pods_network_cidr }}"
+        creates: /etc/kubernetes/admin.conf
+      register: init_first_master
+
+    - name: Show init logs
+      ansible.builtin.debug:
+        msg: "{{ init_first_master.stdout_lines }}"
+              
+
+    - name: Extract join token and cert hash
+      ansible.builtin.set_fact:
+        join_token: "{{ init_first_master.stdout | regex_search('--token ([a-z0-9]+\\.[a-z0-9]+)', '\\1') | first }}"
+        join_cert_hash: "{{ init_first_master.stdout | regex_search('--discovery-token-ca-cert-hash (sha256:[a-f0-9]+)', '\\1') | first }}"
+        join_certificate_key: "{{ init_first_master.stdout | regex_search('--certificate-key ([a-f0-9]+)', '\\1') | first }}"
+
+    - name: Show parsed values
+      ansible.builtin.debug:
+        msg:
+          token:           "{{ join_token }}"
+          cert_hash:       "{{ join_cert_hash }}"
+          certificate_key: "{{ join_certificate_key }}"
+
+    - name: Add calico plugin self-configured yaml
+      ansible.builtin.copy:
+        src: files/calico/calico.yaml
+        dest: /etc/kubernetes/manifests/calico.yaml
+    
+    - name: Apply Calico manifest
+      ansible.builtin.command:
+        cmd: kubectl apply -f /etc/kubernetes/manifests/calico.yaml
+      register: calico_install
+
+    - name: Show calico install
+      ansible.builtin.debug:
+        msg: "{{ calico_install }}"
+
+    - name: Wait for first master to be Ready
+      ansible.builtin.command:
+        argv:
+          - kubectl 
+          - wait 
+          - "--for=condition=Ready"
+          - "node/{{ groups['k8s_masters'][0] }}{{ domain }}" 
+          - "--timeout=300s"
+      register: wait_result
+
+    - name: Show parsed values
+      ansible.builtin.debug:
+        msg: "{{ wait_result }}"
+
+#- name: Masters join cluster control plane
+#  hosts: k8s_masters[1:]
+#  vars_files:
+#    - group_vars/k8s_hosts.yml
+#    - group_vars/k8s_masters.yml
+#    - group_vars/k8s_workers.yml
+#    - group_vars/loadbalancers.yml
+#  become: true
+#  tasks:
+#    - name: kubeadm join masters
+#      ansible.builtin.command:
+#        argv:
+#          - kubeadm
+#          - join
+#          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+#          - "--token"
+#          - "{{ hostvars[groups['k8s_masters'][0]]['join_token'] }}"
+#          - "--discovery-token-ca-cert-hash"
+#          - "{{ hostvars[groups['k8s_masters'][0]]['join_cert_hash'] }}"
+#          - "--control-plane"
+#          - "--certificate-key"
+#          - "{{ hostvars[groups['k8s_masters'][0]]['join_certificate_key'] }}"
+#        creates: /etc/kubernetes/admin.conf
+#
+#- name: Workers join cluster
+#  hosts: k8s_workers
+#  vars_files:
+#    - group_vars/k8s_hosts.yml
+#    - group_vars/k8s_masters.yml
+#    - group_vars/k8s_workers.yml
+#    - group_vars/loadbalancers.yml
+#  become: true
+#  tasks:
+#    - name: kubeadm join workers
+#      ansible.builtin.command:
+#        argv:
+#          - kubeadm
+#          - join
+#          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+#          - "--token"
+#          - "{{ hostvars[groups['k8s_masters'][0]]['join_token'] }}"
+#          - "--discovery-token-ca-cert-hash"
+#          - "{{ hostvars[groups['k8s_masters'][0]]['join_cert_hash'] }}"
+#        creates: /etc/kubernetes/kubelet.conf
+#
+#
+    

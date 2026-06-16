@@ -3,3 +3,4 @@ ca-certificates
 curl
 gpg
 containerd
+cri-tools

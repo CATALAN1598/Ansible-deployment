@@ -1,0 +1,24 @@
+- name: CNI configuration
+  hosts: k8s_hosts
+  vars_files:
+    - group/k8s_hosts.yml
+  become: true
+  tasks:
+    - name: Install crictl configuration
+      ansible.builtin.copy:
+        src: files/cri/crictl.yaml
+        dest: /etc/crictl.yaml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Show cri including stopped contianers
+      block:
+        - name: Exec crictl
+          ansible.builtin.command:
+            cmd: crictl ps -a
+          register: return_crictl
+
+        - name: Show command return
+          ansible.builtin.debug:
+            msg: "crictl ps -a: {{ return_crictl }}"
