@@ -2,9 +2,17 @@
 - name: Installation of Haproxy for master nodes
   hosts: loadbalancers
   vars_files:
-    - groups_vars/loadbalancers.yml
+    - group_vars/loadbalancers.yml
   become: true
   tasks:
+    - name: Add local DNS [OPTIONAL]
+      ansible.builtin.template:
+        src: templates/dns_local/hosts.j2
+        dest: /etc/cloud/templates/hosts.debian.tmpl
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: update system
       ansible.builtin.apt:
         update_cache: true

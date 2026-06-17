@@ -39,6 +39,13 @@
         ip link delete cni0 2>/dev/null || true
         ip link delete tunl0 2>/dev/null || true
       ignore_errors: true
+    
+    - name: Clear containerd
+      ansible.builtin.shell: |
+        for mp in $(mount | grep '/run/containerd/' | awk '{print $3}'); do   umount -l "$mp"; done
+        for mp in $(mount | grep '/var/lib/kubelet/pods' | awk '{print $3}'); do   umount -l "$mp"; done
+        for mp in $(mount | grep '/run/containerd/io.containerd.runtime.v2.task' | awk '{print $3}'); do   umount -l "$mp"; done
+      ignore_errors: true
 
     - name: Stop kubelet
       ansible.builtin.systemd_service:

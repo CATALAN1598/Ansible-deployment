@@ -8,7 +8,7 @@
     - name: Add local DNS [OPTIONAL]
       ansible.builtin.template:
         src: templates/dns_local/hosts.j2
-        dest: /etc/hosts
+        dest: /etc/cloud/templates/hosts.debian.tmpl
         owner: root
         group: root
         mode: "0644"
@@ -115,26 +115,6 @@
         msg:
           enabled:      "{{ ansible_facts.services['kubelet.service'].status }}"
           active_state: "{{ ansible_facts.services['kubelet.service'].state }}"
-
-    - name: Install crictl configuration
-      ansible.builtin.copy:
-        src: files/cri/crictl.yaml
-        dest: /etc/crictl.yaml
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Show cri including stopped contianers
-      block:
-        - name: Exec crictl
-          ansible.builtin.command:
-            cmd: crictl ps -a
-          register: return_crictl
-
-        - name: Show command return
-          ansible.builtin.debug:
-            msg: "crictl ps -a: {{ return_crictl }}"
-        
 
   handlers:
         - name: restart_kubelet

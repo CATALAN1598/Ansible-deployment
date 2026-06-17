@@ -1,5 +1,5 @@
 ---
-- name: Boostrap du cluster
+- name: Bootstrap du cluster
   hosts: "{{ groups['k8s_masters'][0] }}"
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf

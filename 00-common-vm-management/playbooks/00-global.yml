@@ -3,6 +3,11 @@
   hosts: all
   become: true
   tasks:
+    - name: Force debian 12 repositoty
+      ansible.builtin.copy:
+        src: files/apt/sources.list.d/debian12.list
+        dest: /etc/apt/sources.list.d/debian12.list
+
     - name: Update debian
       ansible.builtin.apt:
         update_cache: true

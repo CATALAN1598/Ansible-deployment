@@ -1,3 +1,4 @@
 kubelet
 kubeadm
 kubectl
+cri-tools

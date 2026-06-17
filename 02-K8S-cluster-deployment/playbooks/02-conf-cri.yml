@@ -1,4 +1,4 @@
-- name: CNI configuration
+- name: CRI configuration
   hosts: k8s_hosts
   vars_files:
     - group/k8s_hosts.yml
