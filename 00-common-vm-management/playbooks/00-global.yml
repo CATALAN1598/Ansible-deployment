@@ -1,11 +1,14 @@
 ---
 - name: APT update and minimal install
   hosts: all
+  vars_files:
+    - ../group_vars/all.yml
   become: true
   tasks:
     - name: Force debian 12 repositoty
+      #if not use cloud-init default mirror
       ansible.builtin.copy:
-        src: files/apt/sources.list.d/debian12.list
+        src: ../files/apt/sources.list.d/debian12.list
         dest: /etc/apt/sources.list.d/debian12.list
 
     - name: Update debian
@@ -18,11 +21,12 @@
 
     - name: Install minimal list of packages
       ansible.builtin.apt:
-        name: "{{ lookup('file', 'files/apt/lists/default.server.list').split('\n') }}"
+        name: "{{ lookup('file', '../files/apt/lists/default.server.list').split('\n') }}"
         state: present
         update_cache: true
           
     - name: Disable cloud-init manage_etc_hosts
+      #if you don't wan t to use cloud-init template
       ansible.builtin.lineinfile:
         path: /etc/cloud/cloud.cfg
         regexp: '^manage_etc_hosts'
@@ -31,7 +35,7 @@
           
     - name: Replace hosts file
       ansible.builtin.template:
-        src: templates/etc_files/hosts.yml.j2
+        src: ../templates/etc_files/hosts.yml.j2
         dest: /etc/hosts
         mode: '0644'
         owner: root
@@ -39,7 +43,7 @@
 
     - name: Set FQDN hostname file
       ansible.builtin.template:
-        src: templates/etc_files/hostname.yml.j2
+        src: ../templates/etc_files/hostname.yml.j2
         dest: /etc/hostname
         mode: '0644'
         owner: root
