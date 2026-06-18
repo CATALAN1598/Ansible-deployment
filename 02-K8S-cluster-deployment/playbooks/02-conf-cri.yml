@@ -1,7 +1,7 @@
 - name: CRI configuration
   hosts: k8s_hosts
   vars_files:
-    - group/k8s_hosts.yml
+    - group_vars/k8s_hosts.yml
   become: true
   tasks:
     - name: Install crictl configuration
