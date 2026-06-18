@@ -1,12 +1,12 @@
 - name: CRI configuration
   hosts: k8s_hosts
   vars_files:
-    - group_vars/k8s_hosts.yml
+    - ../group_vars/k8s_hosts.yml
   become: true
   tasks:
     - name: Install crictl configuration
       ansible.builtin.copy:
-        src: files/cri/crictl.yaml
+        src: ../files/cri/crictl.yaml
         dest: /etc/crictl.yaml
         owner: root
         group: root

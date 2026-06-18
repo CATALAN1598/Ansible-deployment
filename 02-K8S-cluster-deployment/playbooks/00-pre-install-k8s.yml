@@ -2,12 +2,12 @@
 - name: Install default package for k8s_hosts
   hosts: k8s_hosts
   vars_files:
-    - group_vars/k8s_hosts.yml
+    - ../group_vars/k8s_hosts.yml
   become: true
   tasks:
     - name: Add local DNS [OPTIONAL]
       ansible.builtin.template:
-        src: templates/dns_local/hosts.j2
+        src: ../templates/dns_local/hosts.j2
         dest: /etc/cloud/templates/hosts.debian.tmpl
         owner: root
         group: root
@@ -20,7 +20,7 @@
 
     - name: install requirement installation tools
       ansible.builtin.apt:
-        name: "{{ lookup('file', 'files/apt/lists/requirement_k8s_installation.list').splitlines() }}"
+        name: "{{ lookup('file', '../files/apt/lists/requirement_k8s_installation.list').splitlines() }}"
         state: present
 
     - name: Check / Create apt keyrings directory
@@ -52,7 +52,7 @@
 
     - name: Force packages version for kubes commands
       ansible.builtin.copy:
-        src: files/apt/preferences.d/kube_cmd_version
+        src: ../files/apt/preferences.d/kube_cmd_version
         dest: /etc/apt/preferences.d/kube_cmd_version
         owner: root
         group: root
@@ -60,7 +60,7 @@
 
     - name: Installation of kubes binary
       ansible.builtin.apt:
-        name: "{{ lookup('file', 'files/apt/lists/kube_cmd.list').split('\n') }}"
+        name: "{{ lookup('file', '../files/apt/lists/kube_cmd.list').split('\n') }}"
         state: present
         update_cache: true
 
@@ -85,7 +85,7 @@
 
         - name: Set kubelet with systemd cgroup manager
           ansible.builtin.copy:
-            src: files/var/lib/kubelet/config.yaml
+            src: ../files/var/lib/kubelet/config.yaml
             dest: /var/lib/kubelet/config.yaml
             owner: root
             group: root
@@ -94,7 +94,7 @@
 
         - name: Set containerd with systemd cgroup manager
           ansible.builtin.copy:
-            src: files/containerd/config.toml
+            src: ../files/containerd/config.toml
             dest: /etc/containerd/config.toml
             owner: root
             group: root
@@ -117,6 +117,10 @@
           active_state: "{{ ansible_facts.services['kubelet.service'].state }}"
 
   handlers:
+        - name: reboot_vm 
+          ansible.builtin.reboot:
+            msg: "Initialyze {{ inventory_hostname }}"
+
         - name: restart_kubelet
           ansible.builtin.systemd_service:
             name: kubelet
@@ -133,6 +137,3 @@
           ansible.builtin.command:
             cmd: sysctl --system
 
-        - name: reboot_vm 
-          ansible.builtin.reboot:
-            msg: "Initialyze {{ inventory_hostname }}"

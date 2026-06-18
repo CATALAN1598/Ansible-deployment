@@ -4,11 +4,11 @@
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
   vars_files:
-    - group_vars/all.yml
-    - group_vars/k8s_hosts.yml
-    - group_vars/k8s_masters.yml
-    - group_vars/k8s_workers.yml
-    - group_vars/loadbalancers.yml
+    - ../group_vars/all.yml
+    - ../group_vars/k8s_hosts.yml
+    - ../group_vars/k8s_masters.yml
+    - ../group_vars/k8s_workers.yml
+    - ../group_vars/loadbalancers.yml
   become: true
   tasks:   
     - name: init master 
@@ -49,7 +49,7 @@
 
     - name: Add calico plugin self-configured yaml
       ansible.builtin.copy:
-        src: files/calico/calico.yaml
+        src: ../files/calico/calico.yaml
         dest: /etc/kubernetes/calico/calico.yaml
     
     - name: Apply Calico manifest
@@ -78,10 +78,10 @@
 #- name: Masters join cluster control plane
 #  hosts: k8s_masters[1:]
 #  vars_files:
-#    - group_vars/k8s_hosts.yml
-#    - group_vars/k8s_masters.yml
-#    - group_vars/k8s_workers.yml
-#    - group_vars/loadbalancers.yml
+#    - ../group_vars/k8s_hosts.yml
+#    - ../group_vars/k8s_masters.yml
+#    - ../group_vars/k8s_workers.yml
+#    - ../group_vars/loadbalancers.yml
 #  become: true
 #  tasks:
 #    - name: kubeadm join masters
@@ -102,10 +102,10 @@
 #- name: Workers join cluster
 #  hosts: k8s_workers
 #  vars_files:
-#    - group_vars/k8s_hosts.yml
-#    - group_vars/k8s_masters.yml
-#    - group_vars/k8s_workers.yml
-#    - group_vars/loadbalancers.yml
+#    - ../group_vars/k8s_hosts.yml
+#    - ../group_vars/k8s_masters.yml
+#    - ../group_vars/k8s_workers.yml
+#    - ../group_vars/loadbalancers.yml
 #  become: true
 #  tasks:
 #    - name: kubeadm join workers
