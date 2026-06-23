@@ -1,0 +1,25 @@
+- name: Workers join cluster
+  hosts: k8s_workers
+  vars_files:
+    - ../group_vars/k8s_hosts.yml
+    - ../group_vars/k8s_masters.yml
+    - ../group_vars/k8s_workers.yml
+  become: true
+  tasks:
+    - name: Load join credentials
+      ansible.builtin.include_vars:
+        file: "../vars/k8s_join_vars.yml"
+
+    - name: kubeadm join workers
+      ansible.builtin.command:
+        argv:
+          - kubeadm
+          - join
+          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+          - "--token"
+          - "{{ token }}"
+          - "--discovery-token-ca-cert-hash"
+          - "{{ cert_hash }}"
+        creates: /etc/kubernetes/kubelet.conf
+
+

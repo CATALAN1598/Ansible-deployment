@@ -1,14 +1,12 @@
 ---
 - name: Bootstrap du cluster
-  hosts: "{{ groups['k8s_masters'][0] }}"
+  hosts: k8s_init_master
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
   vars_files:
     - ../group_vars/all.yml
     - ../group_vars/k8s_hosts.yml
-    - ../group_vars/k8s_masters.yml
-    - ../group_vars/k8s_workers.yml
-    - ../group_vars/loadbalancers.yml
+    - ../group_vars/k8s_init_master.yml
   become: true
   tasks:   
     - name: init master 
@@ -41,6 +39,17 @@
           cert_hash:       "{{ join_cert_hash }}"
           certificate_key: "{{ join_certificate_key }}"
 
+    - name: Persist join values for use in join playbook
+      ansible.builtin.copy:
+        content: |
+          token:            "{{ join_token }}"
+          cert_hash:        "{{ join_cert_hash }}"
+          certificate_key:  "{{ join_certificate_key }}"
+        dest: "../vars/k8s_join_vars.yml"
+      delegate_to: localhost
+      become: false
+      run_once: true
+
     - name: Check / Create kubernetes calico directory
       ansible.builtin.file:
         path: /etc/kubernetes/calico
@@ -67,7 +76,7 @@
           - kubectl 
           - wait 
           - "--for=condition=Ready"
-          - "node/{{ groups['k8s_masters'][0] }}{{ domain }}" 
+          - "node/{{ hostvars[groups['k8s_init_master'][0]]['ansible_hostname'] }}{{ domain }}"
           - "--timeout=300s"
       register: wait_result
 
@@ -75,50 +84,3 @@
       ansible.builtin.debug:
         msg: "{{ wait_result }}"
 
-#- name: Masters join cluster control plane
-#  hosts: k8s_masters[1:]
-#  vars_files:
-#    - ../group_vars/k8s_hosts.yml
-#    - ../group_vars/k8s_masters.yml
-#    - ../group_vars/k8s_workers.yml
-#    - ../group_vars/loadbalancers.yml
-#  become: true
-#  tasks:
-#    - name: kubeadm join masters
-#      ansible.builtin.command:
-#        argv:
-#          - kubeadm
-#          - join
-#          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
-#          - "--token"
-#          - "{{ hostvars[groups['k8s_masters'][0]]['join_token'] }}"
-#          - "--discovery-token-ca-cert-hash"
-#          - "{{ hostvars[groups['k8s_masters'][0]]['join_cert_hash'] }}"
-#          - "--control-plane"
-#          - "--certificate-key"
-#          - "{{ hostvars[groups['k8s_masters'][0]]['join_certificate_key'] }}"
-#        creates: /etc/kubernetes/admin.conf
-#
-#- name: Workers join cluster
-#  hosts: k8s_workers
-#  vars_files:
-#    - ../group_vars/k8s_hosts.yml
-#    - ../group_vars/k8s_masters.yml
-#    - ../group_vars/k8s_workers.yml
-#    - ../group_vars/loadbalancers.yml
-#  become: true
-#  tasks:
-#    - name: kubeadm join workers
-#      ansible.builtin.command:
-#        argv:
-#          - kubeadm
-#          - join
-#          - "{{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
-#          - "--token"
-#          - "{{ hostvars[groups['k8s_masters'][0]]['join_token'] }}"
-#          - "--discovery-token-ca-cert-hash"
-#          - "{{ hostvars[groups['k8s_masters'][0]]['join_cert_hash'] }}"
-#        creates: /etc/kubernetes/kubelet.conf
-#
-#
-    

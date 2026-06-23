@@ -1,5 +1,5 @@
 ---
-- name: Install default package for k8s_hosts
+- name: Default configuration for k8s_hosts
   hosts: k8s_hosts
   vars_files:
     - ../group_vars/k8s_hosts.yml
@@ -38,7 +38,7 @@
         group: root
         timeout: 30
 
-    - name: dearmor key for the apt keyring
+    - name: Dearmor key for the apt keyring
       ansible.builtin.command:
         cmd: /usr/bin/gpg --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/Release.key
 
@@ -73,66 +73,11 @@
         mode: "0644"
       notify: reload_sysctl
 
-    - name: Configure CgroupDriver
-      block:
-        - name: Ensure /var/lib/kubelet exist
-          ansible.builtin.file:
-            path: /var/lib/kubelet
-            state: directory
-            owner: root
-            group: root
-            mode: "0750"
-
-        - name: Set kubelet with systemd cgroup manager
-          ansible.builtin.copy:
-            src: ../files/var/lib/kubelet/config.yaml
-            dest: /var/lib/kubelet/config.yaml
-            owner: root
-            group: root
-            mode: "0644"
-          notify: restart_kubelet
-
-        - name: Set containerd with systemd cgroup manager
-          ansible.builtin.copy:
-            src: ../files/containerd/config.toml
-            dest: /etc/containerd/config.toml
-            owner: root
-            group: root
-            mode: "0644"
-          notify: restart_containerd
-       
-    - name: Start and Enable kubelet service
-      ansible.builtin.systemd_service:
-        name: kubelet
-        state: started
-        enabled: true
-
-    - name: Gather service facts
-      ansible.builtin.service_facts:
-
-    - name: Show kubelet status
-      ansible.builtin.debug:
-        msg:
-          enabled:      "{{ ansible_facts.services['kubelet.service'].status }}"
-          active_state: "{{ ansible_facts.services['kubelet.service'].state }}"
-
   handlers:
         - name: reboot_vm 
           ansible.builtin.reboot:
             msg: "Initialyze {{ inventory_hostname }}"
 
-        - name: restart_kubelet
-          ansible.builtin.systemd_service:
-            name: kubelet
-            state: restarted
-            daemon_reload: true
-
-        - name: restart_containerd
-          ansible.builtin.systemd_service:
-            name: containerd
-            state: restarted
-            daemon_reload: true
-       
         - name: reload_sysctl
           ansible.builtin.command:
             cmd: sysctl --system

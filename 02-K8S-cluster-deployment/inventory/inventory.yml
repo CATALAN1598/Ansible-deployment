@@ -1,12 +1,15 @@
 all:
   children:
-    k8s_masters:
+    k8s_init_master:
       hosts:
-        k8s-master-node1: 
+        k8s-master-node1:
           ansible_host: 192.168.1.121
-        k8s-master-node2: 
+
+    k8s_other_master:
+      hosts:
+        k8s-master-node2:
           ansible_host: 192.168.1.122
-        k8s-master-node3: 
+        k8s-master-node3:
           ansible_host: 192.168.1.123
 
     k8s_workers:
@@ -17,11 +20,17 @@ all:
           ansible_host: 192.168.1.132
         k8s-worker-node3: 
           ansible_host: 192.168.1.133
-    
+
+    k8s_masters:
+      children:
+        k8s_init_master:
+        k8s_other_master:
+
     loadbalancers:
       hosts:
         lb-vm-01:
           ansible_host: 192.168.1.200
+    
 
     k8s_hosts:
       children:
