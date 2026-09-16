@@ -2,9 +2,25 @@
 
 `All of Authority certificate, certificate, password, token, ect... are used on a lab plateform and are here to describe how to use it.`
 
+---
+
 ## ESK-cluster-deployment
 
 Automatic **elasticsearch** / **kibana** cluster deployment without license features 
+
+I use:
+
+    - **OS** (Operating System):            debian12
+    - **ELK** (Elastic Logstash Kibana):    Elastic-8
+
+The playbooks are divided like:
+
+    - 00-global.yml:                        Default configuration for debian
+    - 01-elastic_host_configuration.yml:    Configuration for all elastic type vm (elastic world)
+    - 02-elasticsearch_nodes_install.yml:   Installation and creation of Elasticsearch Cluster
+    - 03-kibana_nodes_install.yml:          Installation and bind kibana nodes to my Elasticsearch cluster.
+
+---
 
 ## K8S-cluster-deployment
 
