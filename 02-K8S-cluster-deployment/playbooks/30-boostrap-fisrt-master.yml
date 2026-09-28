@@ -8,47 +8,49 @@
     - ../group_vars/k8s_hosts.yml
     - ../group_vars/k8s_init_master.yml
   become: true
-  tasks:   
-    - name: init master 
-      ansible.builtin.command:
-        argv:
-          - kubeadm 
-          - init
-          - "--control-plane-endpoint={{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
-          - "--upload-certs"
-          - "--kubernetes-version={{ kubernetes_version }}"
-          - "--pod-network-cidr={{ pods_network_cidr }}"
-        creates: /etc/kubernetes/admin.conf
-      register: init_first_master
+  tasks:
+    - block:   
+        - name: init master 
+          ansible.builtin.command:
+            argv:
+              - kubeadm 
+              - init
+              - "--control-plane-endpoint={{ hostvars[groups['loadbalancers'][0]]['ansible_host'] }}:{{ api_server_src_port }}"
+              - "--upload-certs"
+              - "--kubernetes-version={{ kubernetes_version }}"
+              - "--pod-network-cidr={{ pods_network_cidr }}"
+          register: init_first_master
 
-    - name: Show init logs
-      ansible.builtin.debug:
-        msg: "{{ init_first_master.stdout_lines }}"
+        - name: Show init logs
+          ansible.builtin.debug:
+            msg: "{{ init_first_master.stdout_lines }}"
               
 
-    - name: Extract join token and cert hash
-      ansible.builtin.set_fact:
-        join_token: "{{ init_first_master.stdout | regex_search('--token ([a-z0-9]+\\.[a-z0-9]+)', '\\1') | first }}"
-        join_cert_hash: "{{ init_first_master.stdout | regex_search('--discovery-token-ca-cert-hash (sha256:[a-f0-9]+)', '\\1') | first }}"
-        join_certificate_key: "{{ init_first_master.stdout | regex_search('--certificate-key ([a-f0-9]+)', '\\1') | first }}"
+        - name: Extract join token and cert hash
+          ansible.builtin.set_fact:
+            join_token: "{{ init_first_master.stdout | regex_search('--token ([a-z0-9]+\\.[a-z0-9]+)', '\\1') | first }}"
+            join_cert_hash: "{{ init_first_master.stdout | regex_search('--discovery-token-ca-cert-hash (sha256:[a-f0-9]+)', '\\1') | first }}"
+            join_certificate_key: "{{ init_first_master.stdout | regex_search('--certificate-key ([a-f0-9]+)', '\\1') | first }}"
 
-    - name: Show parsed values
-      ansible.builtin.debug:
-        msg:
-          token:           "{{ join_token }}"
-          cert_hash:       "{{ join_cert_hash }}"
-          certificate_key: "{{ join_certificate_key }}"
+        - name: Show parsed values
+          ansible.builtin.debug:
+            msg:
+              token:           "{{ join_token }}"
+              cert_hash:       "{{ join_cert_hash }}"
+              certificate_key: "{{ join_certificate_key }}"
 
-    - name: Persist join values for use in join playbook
-      ansible.builtin.copy:
-        content: |
-          token:            "{{ join_token }}"
-          cert_hash:        "{{ join_cert_hash }}"
-          certificate_key:  "{{ join_certificate_key }}"
-        dest: "../vars/k8s_join_vars.yml"
-      delegate_to: localhost
-      become: false
-      run_once: true
+        - name: Persist join values for use in join playbook
+          ansible.builtin.copy:
+            content: |
+              token:            "{{ join_token }}"
+              cert_hash:        "{{ join_cert_hash }}"
+              certificate_key:  "{{ join_certificate_key }}"
+            dest: "../vars/k8s_join_vars.yml"
+          delegate_to: localhost
+          become: false
+          run_once: true
+      creates: /etc/kubernetes/admin.conf
+
 
     - name: Check / Create kubernetes calico directory
       ansible.builtin.file:
