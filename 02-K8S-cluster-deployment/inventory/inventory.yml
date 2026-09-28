@@ -29,7 +29,7 @@ all:
     loadbalancers:
       hosts:
         lb-vm-01:
-          ansible_host: 192.168.1.200
+          ansible_host: 192.168.1.199
     
 
     k8s_hosts:
